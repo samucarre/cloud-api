@@ -75,7 +75,7 @@ export const cookieSessionMiddleware = cookieSession({
   keys: [process.env.COOKIE_SECRET],
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  maxAge: Number(process.env.SESSION_MAX_DAYS || 30) * 24 * 60 * 60 * 1000, // SESSION_MAX_DAYS (30 por defecto; antes 24 h)
 });
 
 app.use(cookieSessionMiddleware);

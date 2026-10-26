@@ -99,6 +99,8 @@ export const Callback = async (req: express.Request, res: express.Response) => {
   }
 
   req.session!.id_token = tokenSet.id_token;
+  // Sesión propia para `authenticated` (ver auth.ts): válida SESSION_MAX_DAYS desde ahora.
+  req.session!.auth = { email: userInfo.email, sub: tokenClaims.sub, iat: Date.now() };
 
   await prisma.user.upsert({
     where: { googleId: tokenClaims.sub },

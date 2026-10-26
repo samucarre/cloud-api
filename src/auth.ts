@@ -37,9 +37,24 @@ export const verifyToken = async (idToken: string) => {
   }
 };
 
+// Sesión propia: la cookie (firmada con COOKIE_SECRET) guarda email/sub/iat al entrar y vale SESSION_MAX_DAYS
+// (30 por defecto). Antes se reverificaba el id_token de Google en cada petición y ese token caduca a la hora,
+// así que cada hora había que volver a pasar por Google (y su verificación en dos pasos).
+const SESSION_MAX_MS = Number(process.env.SESSION_MAX_DAYS || 30) * 24 * 60 * 60 * 1000;
+
 export const authenticated = async (req: Request, res: Response, next: NextFunction) => {
   const idToken = req.session?.id_token;
   if (!idToken) throw new UnauthorizedError();
+
+  const auth = req.session?.auth as { email?: string; iat?: number } | undefined;
+  if (auth?.iat && Date.now() - auth.iat < SESSION_MAX_MS) {
+    if (!isIdentityAllowed(auth.email)) {
+      throw new UnauthorizedError("Account is not in the allowlist", "account_not_allowed");
+    }
+    return next();
+  }
+
+  // Sin sesión propia (cookie anterior al cambio) o caducada: verificar el id_token de Google como antes.
 
   const payload = await verifyToken(idToken);
   if (!payload) throw new UnauthorizedError();
